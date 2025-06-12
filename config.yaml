@@ -1,0 +1,7 @@
+project_path: "./react-app2"
+openai_api_key: "${OPENAI_API_KEY}"
+default_language: "en"
+target_languages:
+  - en
+  - es
+  - he
