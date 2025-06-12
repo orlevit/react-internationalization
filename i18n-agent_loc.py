@@ -17,17 +17,6 @@ from dotenv import load_dotenv
 from collections import OrderedDict
 from config import Config, load_config
 
-# Configuration
-@dataclass
-class Config:
-    project_path: str
-    openai_api_key: str
-    target_languages: List[str] = None
-    default_language: str = 'en'
-    
-    def __post_init__(self):
-        if self.target_languages is None:
-            self.target_languages = ['en', 'es']
 
 class I18nAgent:
     def __init__(self, config: Config):
@@ -43,8 +32,12 @@ class I18nAgent:
         
         # Step 1: Scan project structure
         print("\n📁 Scanning project structure...")
-        # react_files = self.scan_react_files() # TODO change
-        react_files = [PosixPath('react-app2/pages/public/login.jsx')]
+        all_files = self.scan_js_files() # TODO change
+        react_files = [i for i in all_files if i.suffix in  ['.jsx','tsx']]
+        # react_files = [PosixPath('react-app3/components/Header.jsx'),PosixPath('react-app3/pages/public/login.jsx')]
+        react_files = react_files[:]
+        print(f"Found {react_files} React files")
+
         print(f"Found {len(react_files)} React files")
         
         # Step 2: Extract translatable strings
@@ -83,17 +76,19 @@ class I18nAgent:
         print("\n✅ i18n automation complete!")
         self.generate_summary()
         
-    def scan_react_files(self) -> List[Path]:
+    def scan_js_files(self) -> List[Path]:
         """Scan for React component files"""
         react_files = []
         extensions = ['.jsx', '.js', '.tsx', '.ts']
+        nextjs_special_files = ['_app.jsx', '_app.js', '_document.jsx', '_document.js', '_error.jsx', '_error.js']
+
         exclude_dirs = {'node_modules', '.next', 'build', 'dist'}
         
         for root, dirs, files in os.walk(self.config.project_path):
             dirs[:] = [d for d in dirs if d not in exclude_dirs]
             
             for file in files:
-                if any(file.endswith(ext) for ext in extensions):
+                if any(file.endswith(ext) for ext in extensions) and not any(file.endswith(special_file) for special_file in nextjs_special_files):
                     file_path = Path(root) / file
                     # Check if it's likely a React component
                     # if self.is_react_component(file_path):
@@ -327,6 +322,101 @@ class I18nAgent:
             with open(next_config_path, 'w') as f:
                 f.write(next_i18n_config)
     
+    
+    def add_translation_hooks(self, content):
+        modified = False
+        
+        # Pattern to match React components (functions that likely return JSX)
+        # This looks for functions that contain JSX return statements
+        component_patterns = [
+            # Function components with explicit return containing JSX
+            r'(?:export\s+(?:default\s+)?)?function\s+([A-Z][a-zA-Z0-9]*)\s*\([^)]*\)\s*\{(?=(?:[^{}]|{[^}]*})*return\s*(?:\(|\<))',
+            # Arrow function components (const Component = () => { ... return JSX })
+            r'(?:export\s+(?:default\s+)?)?const\s+([A-Z][a-zA-Z0-9]*)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*\{(?=(?:[^{}]|{[^}]*})*return\s*(?:\(|\<))',
+            # Arrow function components with implicit return (const Component = () => <JSX>)
+            r'(?:export\s+(?:default\s+)?)?const\s+([A-Z][a-zA-Z0-9]*)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*(?:\(?\s*<)',
+        ]
+        
+        for pattern in component_patterns:
+            matches = list(re.finditer(pattern, content, re.MULTILINE | re.DOTALL))
+            
+            # Process matches in reverse order to avoid position shifts
+            for match in reversed(matches):
+                component_name = match.group(1)
+                
+                # Skip if it's clearly not a React component (common HOC patterns)
+                if component_name.lower() in ['withauth', 'withrole', 'withpermission', 'hoc']:
+                    continue
+                    
+                # Check if this function already has useTranslation hook
+                component_start = match.start()
+                
+                # Find the opening brace of the function body
+                if '=>' in match.group(0):
+                    # Arrow function
+                    arrow_pos = content.find('=>', component_start)
+                    if arrow_pos != -1:
+                        # Look for opening brace after arrow
+                        brace_pos = content.find('{', arrow_pos)
+                        if brace_pos != -1:
+                            insert_pos = brace_pos + 1
+                        else:
+                            # Implicit return arrow function, skip
+                            continue
+                    else:
+                        continue
+                else:
+                    # Regular function
+                    brace_pos = content.find('{', match.end() - 1)
+                    if brace_pos != -1:
+                        insert_pos = brace_pos + 1
+                    else:
+                        continue
+                
+                # Find the end of this component to check for existing useTranslation
+                component_end = self.find_function_end(content, insert_pos - 1)
+                component_body = content[insert_pos:component_end]
+                
+                # Skip if useTranslation already exists in this component
+                if 'useTranslation' in component_body:
+                    continue
+                    
+                # Check if this looks like a React component by looking for JSX patterns
+                jsx_patterns = [
+                    r'return\s*\(',  # return (
+                    r'return\s*<',   # return <
+                    r'<[A-Z][a-zA-Z0-9]*',  # JSX component tags
+                    r'<[a-z]+',      # HTML tags
+                    r'className=',   # React className prop
+                    r'onClick=',     # React event handlers
+                ]
+                
+                has_jsx = any(re.search(jsx_pattern, component_body) for jsx_pattern in jsx_patterns)
+                
+                if has_jsx:
+                    # Add the useTranslation hook
+                    hook_line = '\n  const { t } = useTranslation();\n'
+                    content = content[:insert_pos] + hook_line + content[insert_pos:]
+                    modified = True
+        
+        return content, modified
+
+    def find_function_end(self, content, start_pos):
+        """Find the end position of a function body starting from the opening brace."""
+        brace_count = 1
+        pos = start_pos + 1
+        
+        while pos < len(content) and brace_count > 0:
+            char = content[pos]
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+            pos += 1
+        
+        return pos
+
+    
     def refactor_component(self, file_path: Path):
         """Refactor a React component to use i18n"""
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -336,12 +426,16 @@ class I18nAgent:
         
         # unique_files = list({v['file'] for v in self.translation_keys.values()})
         # for file_name in unique_files:
+        file_translation_keys = {}
+        for  key, data in self.translation_keys.items():
+            if data['file'] == str(file_path.relative_to(self.config.project_path)):
+                file_translation_keys[key] = data
             # specific_file_dict = {key: data  for key, data in self.translation_keys.items() if data['file'] == file_name}
-        sorted_translation_list= sorted(self.translation_keys.items(), key=lambda x:  x[1]['span'][0])
+        sorted_translation_list= sorted(file_translation_keys.items(), key=lambda x:  x[1]['span'][0])
                                    
         # Replace hardcoded strings with t() calls
         for i,(key, data) in enumerate(sorted_translation_list):
-            if data['file'] == str(file_path.relative_to(self.config.project_path)) and data['process_ind'] == 'True':
+            if data['process_ind'] == 'True':
                 replaced_text = f"{{t('{key}')}}"
                 len_diff = len(replaced_text) - (data['span'][1] - data['span'][0])
                 content = content[:data['span'][0]] + f"{{t('{key}')}}" + content[data['span'][1]:]
@@ -359,20 +453,26 @@ class I18nAgent:
             import_statement = "import { useTranslation } from 'react-i18next';\n"
             content = import_statement + content[:]
             modified = True
+            content, modified_hook = self.add_translation_hooks(content)
+            modified =  bool(modified or modified_hook)
+        # if 'useTranslation' not in content:
+        #     import_statement = "import { useTranslation } from 'react-i18next';\n"
+        #     content = import_statement + content[:]
+        #     modified = True
         
-            # Add useTranslation hook in components
-            component_pattern = r'(?:function|const)\s+(\w+)\s*(?:\(|=)'
-            components = re.findall(component_pattern, content)
+        #     # Add useTranslation hook in components
+        #     component_pattern = r'(?:function|const)\s+(\w+)\s*(?:\(|=)'
+        #     components = re.findall(component_pattern, content)
             
-            for component_name in components:
-                # Find the component body
-                pattern = rf'(?:function\s+{component_name}\s*\([^)]*\)\s*{{|const\s+{component_name}\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*{{)'
-                match = re.search(pattern, content)
-                if match:
-                    insert_pos = match.end()
-                    hook_line = '\n  const { t } = useTranslation();\n'
-                    content = content[:insert_pos] + hook_line + content[insert_pos:]
-                    modified = True
+        #     for component_name in components:
+        #         # Find the component body
+        #         pattern = rf'(?:function\s+{component_name}\s*\([^)]*\)\s*{{|const\s+{component_name}\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*{{)'
+        #         match = re.search(pattern, content)
+        #         if match:
+        #             insert_pos = match.end()
+        #             hook_line = '\n  const { t } = useTranslation();\n'
+        #             content = content[:insert_pos] + hook_line + content[insert_pos:]
+        #             modified = True
         
         
         # Write back if modified
@@ -381,7 +481,7 @@ class I18nAgent:
                 f.write(content)
             self.processed_files.append(file_path)
             print(f"✓ Refactored: {file_path.relative_to(self.config.project_path)}")
-    
+        
     def update_package_json(self):
         """Update package.json with i18n dependencies"""
         package_json_path = Path(self.config.project_path) / 'package.json'
@@ -434,15 +534,8 @@ Next steps:
 
 def main():
     """Main entry point"""
-    # Configuration
-    config = Config(
-        project_path='./react-app2',  # Update this path
-        openai_api_key=os.getenv('OPENAI_API_KEY'),
-        target_languages=['en', 'es'],
-        default_language='en'
-    )
     
-    # config = load_config("config.yaml")
+    config = load_config("config.yaml")
     # Run the agent
     agent = I18nAgent(config)
     agent.run()

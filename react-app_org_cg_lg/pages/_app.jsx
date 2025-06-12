@@ -11,6 +11,7 @@ import Router from 'next/router';
 import NProgress from 'nprogress';
 
 import { theme } from '../lib/theme';
+import '../lib/i18n'; // Initialize i18n
 
 import Notifier from '../components/Notifier';
 import Header from '../components/Header';

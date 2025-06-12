@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 // const Book = require('../models/Book'); // Commented out for mocking
 // const Chapter = require('../models/Chapter'); // Commented out for mocking
 
@@ -100,6 +102,32 @@ router.get('/get-chapter-detail', async (req, res) => {
       ],
     },
   });
+});
+
+// New endpoint to get available language folders
+router.get('/languages', async (req, res) => {
+  try {
+    const localesPath = path.join(process.cwd(), 'public', 'locales');
+    
+    // Check if the locales directory exists
+    if (!fs.existsSync(localesPath)) {
+      return res.status(404).json({ error: 'Locales directory not found' });
+    }
+
+    // Read all items in the locales directory
+    const items = fs.readdirSync(localesPath);
+    
+    // Filter only directories (language folders)
+    const languageFolders = items.filter(item => {
+      const itemPath = path.join(localesPath, item);
+      return fs.statSync(itemPath).isDirectory();
+    });
+
+    res.json(languageFolders);
+  } catch (error) {
+    console.error('Error reading language folders:', error);
+    res.status(500).json({ error: 'Failed to read language folders' });
+  }
 });
 
 module.exports = router;

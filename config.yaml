@@ -1,4 +1,4 @@
-project_path: "./react-app2"
+project_path: "./react-app3"
 openai_api_key: "${OPENAI_API_KEY}"
 default_language: "en"
 target_languages:
