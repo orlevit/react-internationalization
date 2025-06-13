@@ -16,7 +16,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from collections import OrderedDict
 from config import Config, load_config
-
+from ast_creation import parse_react_project
 
 class I18nAgent:
     def __init__(self, config: Config):
@@ -33,9 +33,13 @@ class I18nAgent:
         # Step 1: Scan project structure
         print("\n📁 Scanning project structure...")
         all_files = self.scan_js_files() # TODO change
+        symbols_dict = parse_react_project(all_files[:3])
+
         react_files = [i for i in all_files if i.suffix in  ['.jsx','tsx']]
         # react_files = [PosixPath('react-app3/components/Header.jsx'),PosixPath('react-app3/pages/public/login.jsx')]
-        react_files = react_files[:]
+        react_files = [PosixPath('react-app3/pages/public/login.jsx')]
+
+        # react_files = react_files[:]
         print(f"Found {react_files} React files")
 
         print(f"Found {len(react_files)} React files")
@@ -113,14 +117,14 @@ class I18nAgent:
         # Patterns to find hardcoded strings
         patterns = [
             # JSX text content
-            r'>([^<>{}\n]+)</',
+            r'>([^\n]+)</',
             # String literals in props
-            r'(?:title|label|placeholder|alt|value|message|description|error|success|warning|info)\s*=\s*["\']([^"\']+)["\']',
+            r'(?:title|label|placeholder|alt|value|message|description|error|success|warning|info)\s*=\s*["\']([^\n]+)["\']',
             # Button/link text
-            r'<(?:button|a|span|p|h[1-6]|div)[^>]*>\s*([^<>{}\n]+?)\s*</',
+            r'<(?:button|a|span|p|h[1-6]|div)[^>]*>\s*([^\n]+?)\s*</',
 
             # Error messages, notifications
-            r'(?:alert|notify|console\.(?:log|error|warn))\s*\(\s*["\']([^"\']+?)["\']\s*\)',
+            r'(?:alert|notify|console\.(?:log|error|warn))\s*\(\s*["\']([^\n]+?)["\']\s*\)',
         ]
         
         relative_path = file_path.relative_to(self.config.project_path)
