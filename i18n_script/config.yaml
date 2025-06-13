@@ -1,4 +1,5 @@
 project_path: "./react-app3"
+symbols_dict_path: "./i18n_script/symbols_dict.json"
 openai_api_key: "${OPENAI_API_KEY}"
 default_language: "en"
 target_languages:
