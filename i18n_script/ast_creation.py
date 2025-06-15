@@ -268,7 +268,7 @@ class ReactJSParser:
                     "span": self._get_span(match),
                     "return_output": self._infer_type(var_value),
                     "dependencies": self._extract_dependencies(var_value),
-                    "file": self.current_file,
+                    "file": str(self.current_file),
                     "code": match.group(0).strip()
                 }
     
@@ -309,7 +309,7 @@ class ReactJSParser:
             return "unknown"
 
 # Usage example
-def parse_react_project(react_files: List[str]) -> Dict[str, Any]:
+def parse_react_project(files: List[str]) -> Dict[str, Any]:
     """
     Main function to parse React project files
     
@@ -320,4 +320,4 @@ def parse_react_project(react_files: List[str]) -> Dict[str, Any]:
         Dictionary with extracted symbols
     """
     parser = ReactJSParser()
-    return parser.parse_files(react_files)
+    return parser.parse_files([str(i) for i in files])

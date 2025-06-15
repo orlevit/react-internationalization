@@ -29,6 +29,7 @@ class I18nAgent:
         self.processed_files = []
         self.all_files = []
         self.react_files = []
+        self.symbols_dict = {}
     
     def extract_translatable_strings(self):
         # Step 1: Scan project structure
@@ -78,15 +79,42 @@ class I18nAgent:
         self.update_package_json()
         
 
+    def create_parse_react_project(self):
+        # Save to file
+        if not os.path.exists(self.config.symbols_dict_path):
+            symbols_dict = parse_react_project(self.all_files [:5]) ########## TODO: change to all
+
+            with open(self.config.symbols_dict_path, 'w', encoding='utf-8') as f:
+                json.dump(symbols_dict, f, indent=2, ensure_ascii=False)
+        else:
+            with open(self.config.symbols_dict_path, 'r', encoding='utf-8') as f: # todo: CNAGE
+                symbols_dict = json.load(f)
+
+        return symbols_dict 
+
     def run(self):
         """Main execution flow"""
         print("🚀 Starting i18n automation process...")
         react_files = self.extract_translatable_strings()
         self.update_simple_translations(react_files)
-        symbols_dict = parse_react_project(self.all_files [:3]) ########## TODO: change to all
+        self.symbols_dict = self.create_parse_react_project()
+        #######################################################33
+        # from complex_i18n_w_llm import analyze_project_i18n
+        # from apply_complex_changes import apply_i18n_translations
 
+        # results = analyze_project_i18n(self.translation_keys_maybe, self.symbols_dict, self.client )
+        # summary = apply_i18n_translations(results, self.config,config_path="./i18n_script/config.yaml", backup=False, dry_run=False)
+        # print(summary)
+        #######################################################33
 
-   
+        from complex_i18n import ComplexI18nProcessor
+        processor = ComplexI18nProcessor(
+            openai_client=self.client,
+            target_languages=self.config.target_languages,
+            project_path=self.config.project_path)
+
+        complex_i18n_changes = processor.process_complex_i18n(self.translation_keys_maybe, self.symbols_dict)
+
         print("\n✅ i18n automation complete!")
         
     def scan_js_files(self) -> List[Path]:
@@ -136,7 +164,7 @@ class I18nAgent:
             r'(?:alert|notify|console\.(?:log|error|warn))\s*\(\s*["\']([^\n]+?)["\']\s*\)',
         ]
         
-        relative_path = file_path.relative_to(self.config.project_path)
+        # relative_path = file_path.relative_to(self.config.project_path)
         
         for pattern in patterns:
             matches = [match for match in re.finditer(pattern, content, re.IGNORECASE)]
@@ -150,10 +178,10 @@ class I18nAgent:
                 process_ind = self.should_translate(text)
                 if process_ind:
                     # Generate a unique key
-                    key = self.generate_translation_key(text, str(relative_path))
+                    key = self.generate_translation_key(text, str(file_path))
                     self.translation_keys[key] = {
                         'text': text,
-                        'file': str(relative_path),
+                        'file': str(file_path),
                         'process_ind' : 'Maybe' if process_ind == 'Maybe' else 'True',
                         'span' : match_span,
                         'occurrences': self.translation_keys.get(key, {}).get('occurrences', 0) + 1
@@ -675,7 +703,7 @@ class I18nAgent:
             file_translation_keys = {}
             not_cur_files_dict = {}
             for  key, data in d.items():
-                if data['file'] == str(file_path.relative_to(self.config.project_path)):
+                if data['file'] == str(file_path):
                     file_translation_keys[key] = data
                 else:
                     not_cur_files_dict[key] = data
@@ -725,6 +753,7 @@ class I18nAgent:
         if 'useTranslation' not in content:
             content, modified = self.process_file_with_span_updates(file_path, content, all_translation_dict)
         self.translation_keys_all = all_translation_dict
+        self.translation_keys_maybe = {key: data for key, data in self.translation_keys_all.items() if data['process_ind'] == 'Maybe'}
 
         # Write back if modified
         if modified:
