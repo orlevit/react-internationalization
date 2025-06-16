@@ -1,0 +1,16 @@
+{
+  "handleLanguageChange": {
+    "description": "Arrow function handleLanguageChange",
+    "type": "arrow_function",
+    "span": [
+      67,
+      70
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "selectedLanguage"
+    ],
+    "file": "react-app3/components/Header.jsx",
+    "code": "const handleLanguageChange = (event) => {\n    const selectedLanguage = event.target.value;\n    i18n.changeLanguage(selectedLanguage); // Change the language dynamically\n  }"
+  }
+}

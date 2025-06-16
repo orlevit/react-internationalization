@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from collections import OrderedDict
 from config import Config, load_config
 from ast_creation import parse_react_project
+from complex_i18n import ComplexI18nProcessor
 
 class I18nAgent:
     def __init__(self, config: Config):
@@ -36,13 +37,10 @@ class I18nAgent:
         print("\n📁 Scanning project structure...")
         self.all_files  = self.scan_js_files() # TODO change
 
-        react_files = [i for i in self.all_files  if i.suffix in  ['.jsx','tsx']]
-        # react_files = [PosixPath('react-app3/components/Header.jsx'),PosixPath('react-app3/pages/public/login.jsx')]
+        # react_files = [i for i in self.all_files  if i.suffix in  ['.jsx','tsx']]
         react_files = [PosixPath('react-app3/pages/public/login.jsx')]
 
-        # react_files = react_files[:]
         print(f"Found {react_files} React files")
-
         print(f"Found {len(react_files)} React files")
         
         # Step 2: Extract translatable strings
@@ -81,39 +79,37 @@ class I18nAgent:
 
     def create_parse_react_project(self):
         # Save to file
-        if not os.path.exists(self.config.symbols_dict_path):
-            symbols_dict = parse_react_project(self.all_files [:5]) ########## TODO: change to all
+        #if not os.path.exists(self.config.symbols_dict_path):
+        symbols_dict = parse_react_project(self.all_files [:]) ########## TODO: change to all
 
-            with open(self.config.symbols_dict_path, 'w', encoding='utf-8') as f:
-                json.dump(symbols_dict, f, indent=2, ensure_ascii=False)
-        else:
-            with open(self.config.symbols_dict_path, 'r', encoding='utf-8') as f: # todo: CNAGE
-                symbols_dict = json.load(f)
+        with open(self.config.symbols_dict_path, 'w', encoding='utf-8') as f:
+            json.dump(symbols_dict, f, indent=2, ensure_ascii=False)
+        # else:
+        #     with open(self.config.symbols_dict_path, 'r', encoding='utf-8') as f: # todo: CNAGE
+        #         symbols_dict = json.load(f)
 
         return symbols_dict 
 
     def run(self):
         """Main execution flow"""
         print("🚀 Starting i18n automation process...")
+        # get all files
         react_files = self.extract_translatable_strings()
+
+        # update only simple cases  where there is only a string 
         self.update_simple_translations(react_files)
+
+        # handle complex cases where there are variables/function calles inside the text
+        # create a mapping between functions/classes/objects and their references
         self.symbols_dict = self.create_parse_react_project()
-        #######################################################33
-        # from complex_i18n_w_llm import analyze_project_i18n
-        # from apply_complex_changes import apply_i18n_translations
 
-        # results = analyze_project_i18n(self.translation_keys_maybe, self.symbols_dict, self.client )
-        # summary = apply_i18n_translations(results, self.config,config_path="./i18n_script/config.yaml", backup=False, dry_run=False)
-        # print(summary)
-        #######################################################33
-
-        from complex_i18n import ComplexI18nProcessor
+        
         processor = ComplexI18nProcessor(
             openai_client=self.client,
             target_languages=self.config.target_languages,
             project_path=self.config.project_path)
 
-        complex_i18n_changes = processor.process_complex_i18n(self.translation_keys_maybe, self.symbols_dict)
+        processor.process_complex_i18n(self.translation_keys_maybe, self.symbols_dict)
 
         print("\n✅ i18n automation complete!")
         
@@ -153,19 +149,19 @@ class I18nAgent:
         
         # Patterns to find hardcoded strings
         patterns = [
-            # JSX text content
-            r'>([^\n]+)</',
-            # String literals in props
-            r'(?:title|label|placeholder|alt|value|message|description|error|success|warning|info)\s*=\s*["\']([^\n]+)["\']',
-            # Button/link text
-            r'<(?:button|a|span|p|h[1-6]|div)[^>]*>\s*([^\n]+?)\s*</',
+            # r'<(?:button|a|span|p|h[1-6]|div)[^>]*>\s*([^<>]+?)\s*</(?:button|a|span|p|h[1-6]|div)>',
 
-            # Error messages, notifications
-            r'(?:alert|notify|console\.(?:log|error|warn))\s*\(\s*["\']([^\n]+?)["\']\s*\)',
+            # JSX any element with direct innerText (fallback for generic cases)
+            r'>([^<\n][^<]+?)</',
+
+            # String literals in props like title="Save", label="Name"
+            r'(?:title|label|placeholder|alt|value|message|description|error|success|warning|info)\s*=\s*["\']([^"\']+?)["\']',
+
+            # Error messages, notifications (console, alert, notify, etc.)
+            r'(?:alert|notify|console\.(?:log|error|warn))\s*\(\s*["\']([^"\']+?)["\']\s*\)',
         ]
-        
-        # relative_path = file_path.relative_to(self.config.project_path)
-        
+
+            
         for pattern in patterns:
             matches = [match for match in re.finditer(pattern, content, re.IGNORECASE)]
             for match in matches:
@@ -364,84 +360,6 @@ class I18nAgent:
                 f.write(next_i18n_config)
     
     
-    
-    # def add_translation_hooks(self, content):
-    #     modified = False
-        
-    #     # Pattern to match React components (functions that likely return JSX)
-    #     # This looks for functions that contain JSX return statements
-    #     component_patterns = [
-    #         # Function components with explicit return containing JSX
-    #         r'(?:export\s+(?:default\s+)?)?function\s+([A-Z][a-zA-Z0-9]*)\s*\([^)]*\)\s*\{(?=(?:[^{}]|{[^}]*})*return\s*(?:\(|\<))',
-    #         # Arrow function components (const Component = () => { ... return JSX })
-    #         r'(?:export\s+(?:default\s+)?)?const\s+([A-Z][a-zA-Z0-9]*)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*\{(?=(?:[^{}]|{[^}]*})*return\s*(?:\(|\<))',
-    #         # Arrow function components with implicit return (const Component = () => <JSX>)
-    #         r'(?:export\s+(?:default\s+)?)?const\s+([A-Z][a-zA-Z0-9]*)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>\s*(?:\(?\s*<)',
-    #     ]
-        
-    #     for pattern in component_patterns:
-    #         matches = list(re.finditer(pattern, content, re.MULTILINE | re.DOTALL))
-            
-    #         # Process matches in reverse order to avoid position shifts
-    #         for match in reversed(matches):
-    #             component_name = match.group(1)
-                
-    #             # Skip if it's clearly not a React component (common HOC patterns)
-    #             if component_name.lower() in ['withauth', 'withrole', 'withpermission', 'hoc']:
-    #                 continue
-                    
-    #             # Check if this function already has useTranslation hook
-    #             component_start = match.start()
-                
-    #             # Find the opening brace of the function body
-    #             if '=>' in match.group(0):
-    #                 # Arrow function
-    #                 arrow_pos = content.find('=>', component_start)
-    #                 if arrow_pos != -1:
-    #                     # Look for opening brace after arrow
-    #                     brace_pos = content.find('{', arrow_pos)
-    #                     if brace_pos != -1:
-    #                         insert_pos = brace_pos + 1
-    #                     else:
-    #                         # Implicit return arrow function, skip
-    #                         continue
-    #                 else:
-    #                     continue
-    #             else:
-    #                 # Regular function
-    #                 brace_pos = content.find('{', match.end() - 1)
-    #                 if brace_pos != -1:
-    #                     insert_pos = brace_pos + 1
-    #                 else:
-    #                     continue
-                
-    #             # Find the end of this component to check for existing useTranslation
-    #             component_end = self.find_function_end(content, insert_pos - 1)
-    #             component_body = content[insert_pos:component_end]
-                
-    #             # Skip if useTranslation already exists in this component
-    #             if 'useTranslation' in component_body:
-    #                 continue
-                    
-    #             # Check if this looks like a React component by looking for JSX patterns
-    #             jsx_patterns = [
-    #                 r'return\s*\(',  # return (
-    #                 r'return\s*<',   # return <
-    #                 r'<[A-Z][a-zA-Z0-9]*',  # JSX component tags
-    #                 r'<[a-z]+',      # HTML tags
-    #                 r'className=',   # React className prop
-    #                 r'onClick=',     # React event handlers
-    #             ]
-                
-    #             has_jsx = any(re.search(jsx_pattern, component_body) for jsx_pattern in jsx_patterns)
-                
-    #             if has_jsx:
-    #                 # Add the useTranslation hook
-    #                 hook_line = '\n  const { t } = useTranslation();\n'
-    #                 content = content[:insert_pos] + hook_line + content[insert_pos:]
-    #                 modified = True
-        
-    #     return content, modified
     def update_spans_after_insertion(self, file_path, all_translation_dict, insertion_pos, inserted_text_length):
         """
         Update span locations in all_translation_dict for entries that come after the insertion point
@@ -720,9 +638,6 @@ class I18nAgent:
         
         # sorted_translation_list, _ = _convert_dict_to_ordered_list(self.translation_keys, file_path)
         sorted_translation_list_all, not_cur_files_dict = _convert_dict_to_ordered_list(self.translation_keys_all, file_path)
-
-        # unique_files = list({v['file'] for v in self.translation_keys.values()})
-        # for file_name in unique_files:
                      
         # Replace hardcoded strings with t() calls
         for i,(key, data) in enumerate(sorted_translation_list_all):
@@ -743,13 +658,6 @@ class I18nAgent:
         for i, (key, data) in enumerate(sorted_translation_list_all):
             all_translation_dict[key] = data
   
-        # Add import for useTranslation hook and add in components if not present
-        # if 'useTranslation' not in content:
-        #     import_statement = "import { useTranslation } from 'react-i18next';\n"
-        #     content = import_statement + content[:]
-        #     modified = True
-        #     content, modified_hook = self.add_translation_hooks(content)
-        #     modified =  bool(modified or modified_hook)
         if 'useTranslation' not in content:
             content, modified = self.process_file_with_span_updates(file_path, content, all_translation_dict)
         self.translation_keys_all = all_translation_dict
@@ -785,38 +693,12 @@ class I18nAgent:
             json.dump(package_data, f, indent=2)
         
         print("✓ Updated package.json with i18n dependencies")
-    
-    def generate_summary(self):
-        """Generate a summary of the i18n process"""
-        summary = f"""
-📊 i18n Automation Summary:
-- Processed {len(self.processed_files)} React components
-- Extracted {len(self.translation_keys)} unique translatable strings
-- Generated translations for {len(self.config.target_languages)} languages
-- Created translation files in public/locales/
-- Setup i18n configuration
-- Updated package.json with required dependencies
-
-Next steps:
-1. Run 'npm install' or 'yarn install' to install new dependencies
-2. Import i18n configuration in _app.jsx:
-   import '../lib/i18n';
-3. Test the application with different languages
-4. Review and adjust translations as needed
-        """
-        print(summary)
-        
-        # Save summary to file
-        summary_path = Path(self.config.project_path) / 'i18n-automation-summary.txt'
-        with open(summary_path, 'w') as f:
-            f.write(summary)
 
 
 def main():
     """Main entry point"""
     
     config = load_config("i18n_script/config.yaml")
-    # Run the agent
     agent = I18nAgent(config)
     agent.run()
 

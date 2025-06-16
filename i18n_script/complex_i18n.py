@@ -49,9 +49,9 @@ class ComplexI18nProcessor:
         
         # Step 9: Create translation files
         self._create_translation_files()
-        
-        return self.change_dict
-    
+
+        self._final_check(ordered_translations)
+            
     def _order_translations(self, possible_translations: Dict) -> Dict:
         """Order translations by file and span"""
         print("Ordering translations by file and span...")
@@ -306,7 +306,96 @@ class ComplexI18nProcessor:
             except Exception as e:
                 print(f"✖ Error updating {file_path}: {e}")
 
-    
+    def _final_check(self, ordered_translations: Dict):
+
+        # Group valid changes by file
+        files_to_update = defaultdict(list)
+        for key, change_data in self.change_dict.items():
+            if key in ordered_translations:
+                file_path = change_data.get('file')
+                span = ordered_translations[key].get('span')
+                code = self.change_dict[key].get('code')
+                if file_path and span and code is not None:
+                    files_to_update[file_path].append((span, code))
+
+        # Apply changes to each file
+        for file_path, changes in files_to_update.items():
+            try:
+                # Process each file
+                for file_path, changes in files_to_update.items():
+                    self._final_check_file(file_path, changes)
+            except Exception as e:
+                print(f"✖ Error updating {file_path}: {e}")
+
+
+    def _final_check_file(self, file_path: str, changes: List[Tuple[str, Dict]]):
+        """Update a single file with changes"""
+        try:
+            # Load file content
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Create prompt for LLM
+            # prompt = f"""
+            # You are an expert React and JavaScript/TypeScript developer specializing in internationalization (i18n) with i18next.
+
+            # Your task is to review the following full file content (which may be in .js, .jsx, .ts, or .tsx format) and ensure that all user-facing text is correctly handled with i18n using the i18next framework.
+
+            # Assume all necessary imports (like 'useTranslation', 'withTranslation', or i18n instances) are present and correct — you don't need to write import lines unless functionally required for transformation.
+
+            # You must ensure that:
+            # - Functional components use the `useTranslation` hook properly.
+            # - Class components use `withTranslation` HOC instead of hooks.
+            # - You do **not** break any runtime logic or syntax.
+
+            # If **no change is needed**, reply with:
+            # No
+
+            # If **any change is needed**, reply with the **entire modified file content**, and nothing else — no explanations, no formatting outside the file content.
+
+            # Here is the file content:
+            # {content}
+
+            # Your answer:
+            # """
+            prompt = f"""
+            You are an expert React and JavaScript/TypeScript developer familiar with i18n and Next.js best practices.
+
+            Your task is to review the following file (in .js, .jsx, .ts, or .tsx format) and ensure:
+            1. All user-facing text is correctly wrapped with i18n using `t('...')` or equivalent.
+            2. Hooks like `useTranslation` are not used in class components.
+            3. Incompatible patterns like using `<Link>` with `<a>` child (in modern Next.js) are fixed.
+            - Use `<Link href="/path">Text</Link>` instead of `<Link><a>Text</a></Link>`.
+            - If wrapping with `<a>` is needed, add `legacyBehavior` to the `<Link>`.
+
+            Assume all necessary imports are present.
+
+            If **no change is needed**, reply with:
+            No
+
+            If **any change is needed**, reply with the **entire corrected file content**, and nothing else.
+
+            Here is the file content:
+            {content}
+
+            Your answer:
+            """ 
+
+            
+            # Call LLM
+            response = self._call_llm(prompt)
+            
+            # Update file
+            if response.strip().lower() != "no":
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(response)
+                print(f"Updated file: {file_path}")
+            else:
+                print(f"No changes needed for file: {file_path}")
+                
+        except Exception as e:
+            print(f"Error updating file {file_path}: {e}")
+
     def _update_single_file(self, file_path: str, changes: List[Tuple[str, Dict]]):
         """Update a single file with changes"""
         try:
@@ -420,51 +509,3 @@ Your answer:
         response = self._call_llm(prompt)
         return response.strip()
 
-
-def main():
-    """
-    Main function to demonstrate usage
-    """
-    # Example usage
-    processor = ComplexI18nProcessor(
-        openai_client="your-openai-api-key",
-        target_languages=['en', 'es', 'fr'],
-        project_path="."
-    )
-    
-    # Example input data
-    possible_translations = {
-        "greeting_text": {
-            'text': "Hello World",
-            'file': "src/components/Header.jsx",
-            'process_ind': 'True',
-            'span': (10, 12),
-            'occurrences': 1
-        }
-    }
-    
-    symbols_dict = {
-        "handleLanguageChange": {
-            'description': 'Arrow function handleLanguageChange',
-            'type': 'arrow_function',
-            'span': [67, 70],
-            'return_output': 'unknown',
-            'dependencies': ['selectedLanguage'],
-            'file': 'src/components/Header.jsx',
-            'code': 'const handleLanguageChange = (lang) => { setSelectedLanguage(lang); }'
-        }
-    }
-    
-    # Process
-    complex_i18n_changes = processor.process_complex_i18n(possible_translations, symbols_dict)
-    
-    return complex_i18n_changes
-
-
-if __name__ == "__main__":
-    # Install required packages first:
-    # pip install openai
-    
-    result = main()
-    print("Complex i18n processing completed!")
-    print(f"Changes made: {len(result)}")
