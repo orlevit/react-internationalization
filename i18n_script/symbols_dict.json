@@ -12,5 +12,464 @@
     ],
     "file": "react-app3/components/Header.jsx",
     "code": "const handleLanguageChange = (event) => {\n    const selectedLanguage = event.target.value;\n    i18n.changeLanguage(selectedLanguage); // Change the language dynamically\n  }"
+  },
+  "openSnackbarExported": {
+    "description": "Function openSnackbarExported",
+    "type": "function",
+    "span": [
+      51,
+      53
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "message"
+    ],
+    "file": "react-app3/components/Notifier.jsx",
+    "code": "function openSnackbarExported({ message }) {\n  openSnackbarFn({ message });\n}"
+  },
+  "ROOT_URL": {
+    "description": "Constant ROOT_URL",
+    "type": "constant",
+    "span": [
+      3,
+      5
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev"
+    ],
+    "file": "react-app3/lib/api/getRootUrl.js",
+    "code": "const ROOT_URL = dev\n    ? process.env.NEXT_PUBLIC_URL_APP\n    : process.env.NEXT_PUBLIC_PRODUCTION_URL_APP;"
+  },
+  "getRepos": {
+    "description": "Function getRepos",
+    "type": "function",
+    "span": [
+      134,
+      142
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "user",
+      "github",
+      "getAPI"
+    ],
+    "file": "react-app3/server/github.js",
+    "code": "function getRepos({ user, request }) {\n  const github = getAPI({ user, request });\n\n  return github.repos.listForAuthenticatedUser({\n    visibility: 'private',\n    per_page: 100,\n    affiliation: 'owner',\n  });\n}"
+  },
+  "getRepoDetail": {
+    "description": "Function getRepoDetail",
+    "type": "function",
+    "span": [
+      144,
+      149
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "path",
+      "user",
+      "github",
+      "getAPI"
+    ],
+    "file": "react-app3/server/github.js",
+    "code": "function getRepoDetail({ user, repoName, request, path }) {\n  const github = getAPI({ user, request });\n  const [owner, repo] = repoName.split('/');\n\n  return github.repos.getContent({ owner, repo, path });\n}"
+  },
+  "getCommits": {
+    "description": "Function getCommits",
+    "type": "function",
+    "span": [
+      151,
+      156
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "user",
+      "github",
+      "getAPI"
+    ],
+    "file": "react-app3/server/github.js",
+    "code": "function getCommits({ user, repoName, request }) {\n  const github = getAPI({ user, request });\n  const [owner, repo] = repoName.split('/');\n\n  return github.repos.listCommits({ owner, repo });\n}"
+  },
+  "_": {
+    "description": "Constant _",
+    "type": "constant",
+    "span": [
+      1,
+      1
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "lodash"
+    ],
+    "file": "react-app3/server/utils/slugify.js",
+    "code": "const _ = require('lodash');"
+  },
+  "CLIENT_ID": {
+    "description": "Constant CLIENT_ID",
+    "type": "constant",
+    "span": [
+      12,
+      12
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev"
+    ],
+    "file": "react-app3/server/github.js",
+    "code": "const CLIENT_ID = dev ? process.env.GITHUB_TEST_CLIENTID : process.env.GITHUB_LIVE_CLIENTID;"
+  },
+  "API_KEY": {
+    "description": "Constant API_KEY",
+    "type": "constant",
+    "span": [
+      11,
+      11
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev"
+    ],
+    "file": "react-app3/server/stripe.js",
+    "code": "const API_KEY = dev ? process.env.STRIPE_TEST_SECRETKEY : process.env.STRIPE_LIVE_SECRETKEY;"
+  },
+  "redirectUrl": {
+    "description": "Variable redirectUrl",
+    "type": "variable",
+    "span": [
+      65,
+      65
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "ROOT_URL"
+    ],
+    "file": "react-app3/server/github.js",
+    "code": "let redirectUrl = ROOT_URL;"
+  },
+  "MONGO_URL": {
+    "description": "Constant MONGO_URL",
+    "type": "constant",
+    "span": [
+      24,
+      24
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev"
+    ],
+    "file": "react-app3/server/server.js",
+    "code": "const MONGO_URL = dev ? process.env.MONGO_URL_TEST : process.env.MONGO_URL;"
+  },
+  "URL_MAP": {
+    "description": "Constant URL_MAP",
+    "type": "constant",
+    "span": [
+      42,
+      45
+    ],
+    "return_output": "object",
+    "dependencies": [
+      "books"
+    ],
+    "file": "react-app3/server/server.js",
+    "code": "const URL_MAP = {\n  '/login': '/public/login',\n  '/my-books': '/customer/my-books',\n};"
+  },
+  "MOCK_USER": {
+    "description": "Constant MOCK_USER",
+    "type": "constant",
+    "span": [
+      6,
+      17
+    ],
+    "return_output": "object",
+    "dependencies": [
+      "User",
+      "withAuth"
+    ],
+    "file": "react-app3/server/google.js",
+    "code": "const MOCK_USER = {\n  id: 'mockuserid',\n  _id: 'mockuserid', // Often used interchangeably\n  googleId: 'mockgoogleid',\n  email: 'mock.user@example.com',\n  displayName: 'Mock User',\n  avatarUrl: '/avatar.png', // Placeholder avatar\n  isAdmin: false,\n  // Add any other fields expected by withAuth or components (e.g., purchasedBookIds)\n  purchasedBookIds: ['mockbook1'],\n  isGithubConnected: false,\n};"
+  },
+  "addToMailchimp": {
+    "description": "Function addToMailchimp",
+    "type": "function",
+    "span": [
+      25,
+      38
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "data",
+      "next",
+      "path",
+      "LIST_IDS",
+      "callAPI"
+    ],
+    "file": "react-app3/server/mailchimp.js",
+    "code": "function addToMailchimp({ email, listName }) {\n  const data = {\n    // eslint-disable-next-line\n    email_address: email,\n    status: 'subscribed',\n  };\n\n  const path = `/lists/${LIST_IDS[listName]}/members/`;\n\n  // eslint-disable-next-line\n  console.log(path, data.email_address)\n\n  await callAPI({ path, method: 'POST', data });\n}"
+  },
+  "LIST_IDS": {
+    "description": "Constant LIST_IDS",
+    "type": "constant",
+    "span": [
+      5,
+      8
+    ],
+    "return_output": "object",
+    "dependencies": [],
+    "file": "react-app3/server/mailchimp.js",
+    "code": "const LIST_IDS = {\n  signedup: process.env.MAILCHIMP_SIGNEDUP_LIST_ID,\n  purchased: process.env.MAILCHIMP_PURCHASED_LIST_ID,\n};"
+  },
+  "ROOT_URI": {
+    "description": "Constant ROOT_URI",
+    "type": "constant",
+    "span": [
+      11,
+      11
+    ],
+    "return_output": "string",
+    "dependencies": [],
+    "file": "react-app3/server/mailchimp.js",
+    "code": "const ROOT_URI = `https://${process.env.MAILCHIMP_REGION}.api.mailchimp.com/3.0`;"
+  },
+  "getBookPriceId": {
+    "description": "Function getBookPriceId",
+    "type": "function",
+    "span": [
+      16,
+      32
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev",
+      "book"
+    ],
+    "file": "react-app3/server/stripe.js",
+    "code": "function getBookPriceId(bookSlug) {\n  let priceId;\n\n  if (bookSlug === 'demo-book') {\n    priceId = dev\n      ? process.env.STRIPE_TEST_DEMO_BOOK_PRICE_ID\n      : process.env.STRIPE_LIVE_DEMO_BOOK_PRICE_ID;\n  } else if (bookSlug === 'second-book') {\n    priceId = dev\n      ? process.env.STRIPE_TEST_SECOND_BOOK_PRICE_ID\n      : process.env.STRIPE_LIVE_SECOND_BOOK_PRICE_ID;\n  } else {\n    throw new Error('Wrong book');\n  }\n\n  return priceId;\n}"
+  },
+  "retrieveSession": {
+    "description": "Function retrieveSession",
+    "type": "function",
+    "span": [
+      47,
+      51
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "stripeInstance",
+      "sessionId"
+    ],
+    "file": "react-app3/server/stripe.js",
+    "code": "function retrieveSession({ sessionId }) {\n  return stripeInstance.checkout.sessions.retrieve(sessionId, {\n    expand: ['payment_intent', 'payment_intent.payment_method'],\n  });\n}"
+  },
+  "getEmailTemplate": {
+    "description": "Function getEmailTemplate",
+    "type": "function",
+    "span": [
+      56,
+      67
+    ],
+    "return_output": "object",
+    "dependencies": [
+      "template",
+      "et",
+      "message",
+      "EmailTemplate",
+      "_"
+    ],
+    "file": "react-app3/server/models/EmailTemplate.js",
+    "code": "function getEmailTemplate(name, params) {\n  const et = await EmailTemplate.findOne({ name });\n\n  if (!et) {\n    throw new Error(`No EmailTemplates found.`);\n  }\n\n  return {\n    message: _.template(et.message)(params),\n    subject: _.template(et.subject)(params),\n  };\n}"
+  },
+  "api": {
+    "description": "Function api",
+    "type": "function",
+    "span": [
+      5,
+      9
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "customerApi",
+      "server",
+      "adminApi",
+      "publicApi"
+    ],
+    "file": "react-app3/server/api/index.js",
+    "code": "function api(server) {\n  server.use('/api/v1/public', publicApi);\n  server.use('/api/v1/customer', customerApi);\n  server.use('/api/v1/admin', adminApi);\n}"
+  },
+  "generateSlug": {
+    "description": "Function generateSlug",
+    "type": "function",
+    "span": [
+      15,
+      25
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "user",
+      "slug",
+      "createUniqueSlug",
+      "slugify",
+      "origSlug"
+    ],
+    "file": "react-app3/server/utils/slugify.js",
+    "code": "function generateSlug(Model, name, filter = {}) {\n  const origSlug = slugify(name);\n\n  const user = await Model.findOne({ slug: origSlug, ...filter }, 'id');\n\n  if (!user) {\n    return origSlug;\n  }\n\n  return createUniqueSlug(Model, origSlug, 1);\n}"
+  },
+  "notify": {
+    "description": "Function notify",
+    "type": "function",
+    "span": [
+      3,
+      5
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "openSnackbarExported",
+      "message"
+    ],
+    "file": "react-app3/lib/notify.js",
+    "code": "function notify(obj) {\n  openSnackbarExported({ message: obj.message || obj.toString() });\n}"
+  },
+  "globalUser": {
+    "description": "Variable globalUser",
+    "type": "variable",
+    "span": [
+      5,
+      5
+    ],
+    "return_output": "unknown",
+    "dependencies": [],
+    "file": "react-app3/lib/withAuth.jsx",
+    "code": "let globalUser = null;"
+  },
+  "BASE_PATH": {
+    "description": "Constant BASE_PATH",
+    "type": "constant",
+    "span": [
+      3,
+      3
+    ],
+    "return_output": "string",
+    "dependencies": [
+      "api"
+    ],
+    "file": "react-app3/lib/api/public.js",
+    "code": "const BASE_PATH = '/api/v1/public';"
+  },
+  "getRootUrl": {
+    "description": "Function getRootUrl",
+    "type": "function",
+    "span": [
+      1,
+      8
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "dev",
+      "ROOT_URL"
+    ],
+    "file": "react-app3/lib/api/getRootUrl.js",
+    "code": "function getRootUrl() {\n  const dev = process.env.NODE_ENV !== 'production';\n  const ROOT_URL = dev\n    ? process.env.NEXT_PUBLIC_URL_APP\n    : process.env.NEXT_PUBLIC_PRODUCTION_URL_APP;\n\n  return ROOT_URL;\n}"
+  },
+  "usePrevious": {
+    "description": "Function usePrevious",
+    "type": "function",
+    "span": [
+      43,
+      49
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "ref"
+    ],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "function usePrevious(value) {\n    const ref = useRef();\n    useEffect(() => {\n      ref.current = value;\n    });\n    return ref.current;\n  }"
+  },
+  "i": {
+    "description": "Variable i",
+    "type": "variable",
+    "span": [
+      61,
+      61
+    ],
+    "return_output": "number",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "let i = 0;"
+  },
+  "htmlContentCurrent": {
+    "description": "Variable htmlContentCurrent",
+    "type": "variable",
+    "span": [
+      127,
+      127
+    ],
+    "return_output": "string",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "let htmlContentCurrent = '';"
+  },
+  "padding": {
+    "description": "Variable padding",
+    "type": "variable",
+    "span": [
+      156,
+      156
+    ],
+    "return_output": "string",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "let padding = '20px 20%';"
+  },
+  "left": {
+    "description": "Variable left",
+    "type": "variable",
+    "span": [
+      260,
+      260
+    ],
+    "return_output": "string",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "let left = '20px';"
+  },
+  "onScrollHideHeader": {
+    "description": "Arrow function onScrollHideHeader",
+    "type": "arrow_function",
+    "span": [
+      95,
+      99
+    ],
+    "return_output": "unknown",
+    "dependencies": [
+      "content",
+      "hideHeaderCurrent",
+      "distanceFromTop"
+    ],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "const onScrollHideHeader = () => {\n    const distanceFromTop = document.getElementById('main-content').scrollTop;\n    const hideHeaderCurrent = distanceFromTop > 500;\n    setHideHeader(hideHeaderCurrent);\n  }"
+  },
+  "toggleChapterList": {
+    "description": "Arrow function toggleChapterList",
+    "type": "arrow_function",
+    "span": [
+      145,
+      147
+    ],
+    "return_output": "unknown",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "const toggleChapterList = () => {\n    setShowTOC((prevState) => ({ showTOC: !prevState.showTOC }));\n  }"
+  },
+  "closeTocWhenMobile": {
+    "description": "Arrow function closeTocWhenMobile",
+    "type": "arrow_function",
+    "span": [
+      149,
+      151
+    ],
+    "return_output": "unknown",
+    "dependencies": [],
+    "file": "react-app3/pages/public/read-chapter.jsx",
+    "code": "const closeTocWhenMobile = () => {\n    setShowTOC((prevState) => ({ showTOC: !prevState.isMobile }));\n  }"
   }
 }

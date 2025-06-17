@@ -133,7 +133,7 @@ The system automatically scans React projects to identify user-facing strings th
 
 3. **Install Node.js dependencies:**
    ```bash
-   cd react-app
+   cd react-app3
    npm install
    # or
    yarn install
