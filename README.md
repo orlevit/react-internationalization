@@ -26,6 +26,7 @@ This project implements an automated internationalization (i18n) system that use
 The system automatically scans React projects to identify user-facing strings that require internationalization. It uses regex pattern matching to categorize strings into "simple" (plain text) and "complex" (containing objects or function calls) categories. For simple strings, it generates direct translations using LLM. For complex strings, it performs dependency analysis to understand the context and generates appropriate translation mappings.
 
 ---
+![React i18n Demo](images/react_i18n_demo.gif).
 
 ## High Level Logic
 
@@ -40,7 +41,6 @@ The system automatically scans React projects to identify user-facing strings th
 3. **Context Analysis:**  
    For complex strings, the system analyzes dependencies and surrounding code context to understand the string generation logic.
 
-The **File Processing** and **Pattern Recognition** are illustrated in ![React i18n Demo](images/react_i18n_demo.gif).
 
 4. **Translation Dictionary Generation:**  
    LLM generates appropriate translations and i18n keys for identified strings.
